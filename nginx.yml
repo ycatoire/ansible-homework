@@ -1,0 +1,202 @@
+---
+- hosts: web
+
+  vars:
+    - host: youricatoire.devops.srwx.net
+      email: youri.catoire@gmail.com
+
+  tasks:
+    - name: Installing nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Removing default nginx config
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: restart nginx
+
+    - name: Adding certbot repository
+      apt_repository:
+        repo: ppa:certbot/certbot
+        state: present
+
+    - name: Installing certbot
+      apt:
+        name: python-certbot-nginx
+        state: present
+        update_cache: yes
+
+    - name: Check if SSL certificate exists
+      stat:
+        path: "/etc/letsencrypt/live/{{ host }}/privkey.pem"
+      register: ifssl
+
+    - name: Stop nginx service
+      service:
+        name: nginx
+        state: stopped
+      when: ifssl.stat.exists == False
+
+    - name: Issue the SSL certificate
+      command: "certbot certonly --noninteractive --agree-tos -d {{ host }} --email {{ email }} --standalone"
+      when: ifssl.stat.exists == False
+
+    - name: Create a directory for certbot needs
+      file:
+        path: /srv/acme
+        state: directory
+        owner: root
+        group: root
+        mode: 0700
+
+    - name: Setting cron task for certificate renewal
+      cron:
+        name: Certbot certificate renewal
+        job: "certbot renew --webroot -w /srv/acme --renew-hook 'service nginx reload'"
+        state: present
+        user: root
+        hour: "*/12"
+
+    - name: Installing nginx configuration
+      template:
+        src: "{{ host }}.conf.j2"
+        dest: "/etc/nginx/sites-available/{{ host }}.conf"
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Create a directory for www app
+      file:
+        path: "/srv/www/{{ host }}"
+        state: directory
+        owner: root
+        group: root
+        mode: 0755
+
+    - name: Installing www app
+      template:
+        src: "{{ item }}"
+        dest: "/srv/www/{{ host }}/{{ item | basename | regex_replace('\\.j2','') }}"
+        owner: root
+        group: root
+        mode: 0644
+      with_fileglob:
+        - "./templates/www/*.j2"
+
+    - name: Installing git
+      apt:
+        name: git
+        state: present
+        update_cache: yes
+
+    - name: Check if goapp exists
+      stat:
+        path: "/srv/goapp/goapp"
+      register: ifgoapp
+
+    - name: Adding go repository
+      apt_repository:
+        repo: ppa:longsleep/golang-backports
+        state: present
+      when: ifgoapp.stat.exists == False
+
+    - name: Installing golang
+      apt:
+        name: golang-go
+        state: present
+        update_cache: yes
+      when: ifgoapp.stat.exists == False
+
+    - name: Create a temporary build directory
+      tempfile:
+        state: directory
+        suffix: build
+      register: builddir
+      when: ifgoapp.stat.exists == False
+
+    - name: Git clone goapp
+      git:
+        repo: 'https://github.com/vozerov/goapp.git'
+        dest: "{{ builddir.path }}"
+        version: api
+      when: ifgoapp.stat.exists == False
+
+    - name: Build goapp
+      command: "go build main.go"
+      args:
+        chdir: "{{ builddir.path }}"
+      when: ifgoapp.stat.exists == False
+
+    - name: Create a directory for goapp
+      file:
+        path: "/srv/goapp"
+        state: directory
+        owner: root
+        group: root
+        mode: 0755
+      when: ifgoapp.stat.exists == False
+
+    - name: Deploy goapp
+      copy:
+        src: "{{ builddir.path }}/main"
+        dest: "/srv/goapp/goapp"
+        remote_src: yes
+        owner: root
+        group: root
+        mode: 0744
+      when: ifgoapp.stat.exists == False
+
+    - name: Install systemd service for goapp
+      template:
+        src: "goapp.service.j2"
+        dest: "/etc/systemd/system/goapp.service"
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Start goapp service
+      systemd:
+        name: goapp
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Installing php-fpm
+      apt:
+        name: php-fpm
+        state: present
+        update_cache: yes
+
+    - name: Create a directory for phpapp
+      file:
+        path: "/srv/phpapp"
+        state: directory
+        owner: root
+        group: root
+        mode: 0755
+
+    - name: Installing php app
+      template:
+        src: "index.php.j2"
+        dest: "/srv/phpapp/index.php"
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Enabling site configuration
+      file:
+        src: "/etc/nginx/sites-available/{{ host }}.conf"
+        dest: "/etc/nginx/sites-enabled/{{ host }}.conf"
+        state: link
+      notify: restart nginx
+
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+
+# vim: noai:ts=2:sw=2

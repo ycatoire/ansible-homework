@@ -1,0 +1,39 @@
+server {
+  listen 80;
+  listen [::]:80;
+
+  server_name {{ host }};
+
+  location /.well-known/ {
+    root /srv/acme;
+  }
+
+  location / {
+    return 301 https://{{ host }};
+  }
+  
+}
+
+server {
+  listen 443 ssl;
+  listen [::]:443 ssl;
+
+  server_name {{ host }};
+
+  ssl_certificate /etc/letsencrypt/live/{{ host }}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/{{ host }}/privkey.pem;
+
+  location / {
+    root /srv/www/{{ host }};
+  }
+
+  location /api/sum/ {
+    proxy_pass http://localhost:8080/sum/;
+  }
+
+  location /api/diff/ {
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME /srv/phpapp/index.php;
+    fastcgi_pass unix:/run/php/php7.0-fpm.sock;
+  }
+}

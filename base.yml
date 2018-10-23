@@ -1,0 +1,10 @@
+---
+- hosts: web
+  gather_facts: no
+  tasks:
+      - name: Installing python
+        raw: >
+            apt-get update
+            && apt-get install -q -y python2.7-minimal
+            && update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
+
