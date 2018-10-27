@@ -1,0 +1,78 @@
+---
+- name: Install git if absent
+  apt:
+    name: git
+    state: present
+    update_cache: yes
+
+- name: Check if goapp exists
+  stat:
+    path: "/srv/goapp/goapp"
+  register: ifgoapp
+
+- name: Adding go repository
+  apt_repository:
+    repo: ppa:longsleep/golang-backports
+    state: present
+  when: ifgoapp.stat.exists == False
+
+- name: Installing golang
+  apt:
+    name: golang-go
+    state: present
+    update_cache: yes
+  when: ifgoapp.stat.exists == False
+
+- name: Create a temporary build directory
+  tempfile:
+    state: directory
+    suffix: build
+  register: builddir
+  when: ifgoapp.stat.exists == False
+
+- name: Git clone goapp
+  git:
+    repo: 'https://github.com/vozerov/goapp.git'
+    dest: "{{ builddir.path }}"
+    version: api
+  when: ifgoapp.stat.exists == False
+
+- name: Build goapp
+  command: "go build main.go"
+  args:
+    chdir: "{{ builddir.path }}"
+  when: ifgoapp.stat.exists == False
+
+- name: Create a directory for goapp
+  file:
+    path: "/srv/calc-api-sum"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  when: ifgoapp.stat.exists == False
+
+- name: Deploy goapp
+  copy:
+    src: "{{ builddir.path }}/main"
+    dest: "/srv/calc-api-sum/goapp"
+    remote_src: yes
+    owner: root
+    group: root
+    mode: 0744
+  when: ifgoapp.stat.exists == False
+
+- name: Install systemd service for goapp
+  template:
+    src: "goapp.service.j2"
+    dest: "/etc/systemd/system/goapp.service"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Start goapp service
+  systemd:
+    name: goapp
+    state: started
+    enabled: yes
+    daemon_reload: yes

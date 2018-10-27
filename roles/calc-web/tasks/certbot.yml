@@ -1,0 +1,29 @@
+---
+- name: Adding certbot repository
+  apt_repository:
+    repo: ppa:certbot/certbot
+    state: present
+
+- name: Installing certbot
+  apt:
+    name: python-certbot-nginx
+    state: present
+    update_cache: yes
+
+- name: Force restart nginx
+  service:
+    name: nginx
+    state: restarted
+
+- name: Issue the SSL certificate
+  command: "certbot certonly --noninteractive --disable-renew-updates --agree-tos -d {{ host }} --email {{ email }} --webroot -w /srv/acme"
+  args:
+    creates: "/etc/letsencrypt/live/{{ host }}/privkey.pem"
+
+- name: Setting cron task for certificate renewal
+  cron:
+    name: Certbot certificate renewal
+    job: "certbot renew --webroot -w /srv/acme --renew-hook 'service nginx reload'"
+    state: present
+    user: root
+    hour: "*/12"

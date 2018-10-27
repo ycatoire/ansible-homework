@@ -1,0 +1,32 @@
+---
+- name: Install git if absent
+  apt:
+    name: git
+    state: present
+    update_cache: yes
+
+- name: Create a directory for calc-api-diff
+  file:
+    path: "/srv/calc-api-diff"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Check if calc-api-diff exists
+  stat:
+    path: "/srv/calc-api-diff/diff.php"
+  register: ifphpapp
+
+- name: Installing calc-api-diff
+  git:
+    repo: 'https://github.com/ycatoire/calc-api-diff.git'
+    dest: "/srv/calc-api-diff"
+    version: b772f24
+  when: ifphpapp.stat.exists == False
+
+- name: remove .git subdirectory
+  file:
+    path: "/srv/calc-api-diff/.git"
+    state: absent
+  when: ifphpapp.stat.exists == False

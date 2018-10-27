@@ -1,0 +1,23 @@
+---
+- name: Installing nginx http configuration
+  template:
+    src: "calc-web.nginx.http.conf.j2"
+    dest: "/etc/nginx/sites-available/{{ host }}.http.conf"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Create a directory for certbot needs
+  file:
+    path: /srv/acme
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Enabling site configuration
+  file:
+    src: "/etc/nginx/sites-available/{{ host }}.http.conf"
+    dest: "/etc/nginx/sites-enabled/{{ host }}.http.conf"
+    state: link
+  notify: restart nginx

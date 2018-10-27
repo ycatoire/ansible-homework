@@ -1,20 +1,4 @@
 server {
-  listen 80;
-  listen [::]:80;
-
-  server_name {{ host }};
-
-  location /.well-known/ {
-    root /srv/acme;
-  }
-
-  location / {
-    return 301 https://{{ host }};
-  }
-  
-}
-
-server {
   listen 443 ssl;
   listen [::]:443 ssl;
 
@@ -33,7 +17,7 @@ server {
 
   location /api/diff/ {
     include fastcgi_params;
-    fastcgi_param SCRIPT_FILENAME /srv/phpapp/index.php;
-    fastcgi_pass unix:/run/php/php7.0-fpm.sock;
+    fastcgi_param SCRIPT_FILENAME /srv/calc-api-diff/diff.php;
+    fastcgi_pass unix:/run/php/php{{ php_fpm_ver }}-fpm.sock;
   }
 }

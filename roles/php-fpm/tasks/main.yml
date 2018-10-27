@@ -1,0 +1,28 @@
+---
+- name: Installing php-fpm
+  apt:
+    name: "php{{ php_fpm_version }}-fpm"
+    state: present
+    update_cache: yes
+  notify: restart php-fpm
+
+- name: Installing additional packages
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items: "{{ php_fpm_additional_packages }}"
+  notify: restart php-fpm
+
+- name: Installing nginx pool configuration
+  template:
+    src: "php-fpm.conf.j2"
+    dest: "/etc/php/{{ php_fpm_version }}/fpm/pool.d/www.conf"
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart php-fpm
+
+- name: Save php-fpm version available to other roles
+  set_fact:
+    php_fpm_ver: "{{ php_fpm_version }}"

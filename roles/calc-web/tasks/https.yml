@@ -1,0 +1,23 @@
+---
+- name: Installing nginx http configuration
+  template:
+    src: "calc-web.nginx.https.conf.j2"
+    dest: "/etc/nginx/sites-available/{{ host }}.https.conf"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Create a directory for www app
+  file:
+    path: "/srv/www/{{ host }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Enabling site configuration
+  file:
+    src: "/etc/nginx/sites-available/{{ host }}.https.conf"
+    dest: "/etc/nginx/sites-enabled/{{ host }}.https.conf"
+    state: link
+  notify: restart nginx

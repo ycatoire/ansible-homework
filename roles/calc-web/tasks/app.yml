@@ -1,0 +1,24 @@
+---
+- name: Install git if absent
+  apt:
+    name: git
+    state: present
+    update_cache: yes
+
+- name: Check if calc-api-diff exists
+  stat:
+    path: "/srv/www/{{ host }}/app.js"
+  register: ifwebapp
+
+- name: Clone the git repository
+  git:
+    repo: 'https://github.com/ycatoire/calc-web.git'
+    dest: "/srv/www/{{ host }}"
+    version: 5d27d5a
+  when: ifwebapp.stat.exists == False
+
+- name: remove .git subdirectory
+  file:
+    path: "/srv/www/{{ host }}/.git"
+    state: absent
+  when: ifwebapp.stat.exists == False
