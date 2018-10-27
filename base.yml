@@ -2,9 +2,12 @@
 - hosts: web
   gather_facts: no
   tasks:
-      - name: Installing python
-        raw: >
-            apt-get update
-            && apt-get install -q -y python2.7-minimal
-            && update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
+  - name: Installing python
+    raw: >
+      apt-get update
+      && apt-get install -q -y python2.7-minimal
+      && update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
+    tags:
+      - skip_ansible_lint
 
+# vim: noai:ts=2:sw=2
