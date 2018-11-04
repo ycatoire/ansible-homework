@@ -1,2 +1,2 @@
 [web]
-youricatoire.devops.srwx.net ansible_ssh_user=root
+youricatoire.devops.srwx.net ansible_ssh_user=root host=youricatoire.devops.srwx.net

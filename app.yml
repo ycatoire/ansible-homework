@@ -2,7 +2,6 @@
 - hosts: web
 
   vars:
-    - host: youricatoire.devops.srwx.net
       email: youri.catoire@gmail.com
 
   roles:

@@ -1,2 +1,2 @@
 [web]
-ycat.mooo.com ansible_ssh_user=root
+ycat.mooo.com ansible_ssh_user=root host=ycat.mooo.com
