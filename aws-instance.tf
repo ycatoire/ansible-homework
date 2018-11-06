@@ -121,8 +121,8 @@ resource "aws_internet_gateway" "gw" {
 
 ## Create a route table
 # https://www.terraform.io/docs/providers/aws/r/route_table.html
-resource "aws_route_table" "rt" {
-  vpc_id = "${aws_vpc.raccoonvpc.id}"
+resource "aws_default_route_table" "rt" {
+  default_route_table_id = "${aws_vpc.raccoonvpc.default_route_table_id}"
 
   route {
     cidr_block = "0.0.0.0/0"
@@ -143,6 +143,7 @@ resource "aws_subnet" "calcapp_net" {
   ipv6_cidr_block = "${cidrsubnet(aws_vpc.raccoonvpc.ipv6_cidr_block, 8, 2)}"
   map_public_ip_on_launch = false
   assign_ipv6_address_on_creation = true
+
 
   depends_on = ["aws_internet_gateway.gw"]
 }
@@ -228,21 +229,21 @@ resource "aws_route53_record" "domain_v6" {
 ## Run ansible
 resource "null_resource" "api_ansible_inventory" {
   provisioner "local-exec" {
-    command = "echo \"[api]\n${aws_instance.backend.public_dns} ansible_ssh_user=root\n\" >> inventory/aws"
+    command = "echo \"[api]\n${aws_instance.backend.public_ip} ansible_ssh_user=root\n\" >> inventory/aws"
   }
   depends_on = ["aws_instance.backend"]
 }
 
 resource "null_resource" "web_ansible_inventory" {
   provisioner "local-exec" {
-    command = "echo \"[web]\n${aws_instance.backend.public_dns} ansible_ssh_user=root\n\" >> inventory/aws"
+    command = "echo \"[web]\n${aws_eip.frontend.public_ip} ansible_ssh_user=root\n\" >> inventory/aws"
   }
   depends_on = ["aws_instance.frontend"]
 }
 
 resource "null_resource" "ansible-playbook" {
   provisioner "local-exec" {
-    command = "sleep 10; ansible-playbook -i inventory/aws calcapp.yml --extra-vars \"api_sum_host=${aws_instance.backend.private_ip} host=${var.route53_frontend_fqdn}\""
+    command = "sleep 10; ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory/aws calcapp.yml --extra-vars \"api_sum_host=${aws_instance.backend.private_ip} host=${var.route53_frontend_fqdn}\""
   }
   depends_on = ["null_resource.api_ansible_inventory", "null_resource.web_ansible_inventory", "aws_route53_record.domain_v4"]
 }
