@@ -12,12 +12,14 @@ server {
   }
 
   location /api/sum/ {
-    proxy_pass http://localhost:8080/sum/;
+    proxy_pass http://{{ api_sum_host }}:8080/sum/;
   }
 
+  {% if php_fpm_version %}
   location /api/diff/ {
     include fastcgi_params;
     fastcgi_param SCRIPT_FILENAME /srv/calc-api-diff/diff.php;
     fastcgi_pass unix:/run/php/php{{ php_fpm_ver }}-fpm.sock;
   }
+  {% endif %}
 }

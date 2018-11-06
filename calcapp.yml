@@ -1,12 +1,11 @@
 ---
-- hosts: web
+- hosts: api
+  roles:
+    - calc-api-sum
 
+- hosts: web
   vars:
       email: youri.catoire@gmail.com
-
   roles:
     - nginx
-    - php-fpm
-    - calc-api-diff
-    - calc-api-sum
     - calc-web

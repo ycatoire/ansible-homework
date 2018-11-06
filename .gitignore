@@ -2,3 +2,9 @@
 *.retry
 # IntelliJ project files
 .idea
+# Terraform
+.terraform
+credentials.tfvars
+*.tfstate
+# Other
+questions.txt
