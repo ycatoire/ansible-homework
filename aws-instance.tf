@@ -48,8 +48,6 @@ resource "aws_security_group" "backend" {
     protocol    = "tcp"
     cidr_blocks = ["${aws_instance.frontend.private_ip}/32"]
     ipv6_cidr_blocks = ["${formatlist("%s/128", aws_instance.frontend.ipv6_addresses)}"]
-    # cidr_blocks = ["0.0.0.0/0"]
-    # ipv6_cidr_blocks = ["::/0"]
   }
 
   # Outbound

@@ -1,5 +1,5 @@
 ---
-- name: Installing nginx http configuration
+- name: Installing nginx https configuration
   template:
     src: "calc-web.nginx.https.conf.j2"
     dest: "/etc/nginx/sites-available/{{ host }}.https.conf"
